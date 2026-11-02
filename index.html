@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Apostolic School Manager</title>
+<style>
+:root{--deep:#0B2A5B;--deep2:#143C7A;--sea:#0E9AC0;--soft:#E2F4F9;--bg:#F1F6FB;--ink:#0F2342;--mute:#5B6F8C;--line:#DAE5F0;--late:#D18A0A;--abs:#C8402F;--exc:#6F86A3}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;padding:env(safe-area-inset-top) 0 calc(80px + env(safe-area-inset-bottom))}
+button,input,select,textarea{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--sea);outline-offset:2px}
+header{background:var(--deep);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px}
+header .sp{flex:1;min-width:0}header b{display:block;font-size:16px}header small{color:#A9C3E6}
+.out{background:transparent;border:1px solid #3B5C93;color:#fff;border-radius:999px;padding:10px 16px;cursor:pointer}
+main{max-width:760px;margin:0 auto;padding:16px}
+h2{font-size:21px;margin:0 0 12px}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+.sub{color:var(--mute);font-size:14px}
+input,select,textarea{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:11px;background:#fff;margin-bottom:10px}
+textarea{min-height:120px}
+.btn{width:100%;border:0;border-radius:10px;background:var(--deep2);color:#fff;font-weight:600;padding:13px;cursor:pointer}
+.btn:disabled{opacity:.6}
+.msg{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--soft);border-left:4px solid var(--sea);font-size:14px}
+.msg.bad{background:#FBE6E2;border-color:var(--abs);color:#6B1D12}
+.login{max-width:380px;margin:12vh auto 0;padding:0 20px;text-align:center}
+.login h1{font-size:22px;margin:14px 0 4px;color:var(--deep)}
+.login input{text-align:left}
+.row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.nm{flex:1;min-width:0}.nm small{display:block;color:var(--mute);font-size:12.5px}
+.seg{display:flex;gap:4px}
+.seg button{width:38px;height:38px;border-radius:9px;border:1.5px solid var(--line);background:#fff;color:var(--mute);font-weight:700;cursor:pointer}
+.seg button.on[data-s="present"]{background:var(--sea);border-color:var(--sea);color:#fff}
+.seg button.on[data-s="late"]{background:var(--late);border-color:var(--late);color:#1A1200}
+.seg button.on[data-s="absent"]{background:var(--abs);border-color:var(--abs);color:#fff}
+.seg button.on[data-s="excused"]{background:var(--exc);border-color:var(--exc);color:#fff}
+.kp{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.kp div{background:var(--deep);color:#fff;border-radius:12px;padding:14px}.kp b{display:block;font-size:28px}.kp span{color:#A9C3E6;font-size:13px}
+table{width:100%;border-collapse:collapse}th{text-align:left;font-weight:500;color:var(--mute);font-size:13px;padding-bottom:8px}
+td{border-top:1px solid var(--line);padding:9px 0}td.r,th.r{text-align:right}
+.tag{font-size:12px;background:#FBEFD6;color:#7A4E00;border-radius:999px;padding:2px 8px}
+nav{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);display:flex;gap:4px;padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
+nav button{flex:1;border:0;background:transparent;color:var(--mute);padding:11px 4px;border-radius:10px;font-weight:600;cursor:pointer}
+nav button.on{background:var(--soft);color:var(--deep2)}
+.num{width:58px;padding:8px 4px;margin:0;text-align:center}
+@media print{header,nav,.noprint{display:none!important}body{background:#fff;padding:0}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// Your Supabase project. The public (anon) key is safe to keep in the page.
+var SB="https://gbsslfxbtjpjphwqvqpf.supabase.co";
+var KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdic3NsZnhidGpwanBod3F2cXBmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM1MjI3MDUsImV4cCI6MjEwOTA5ODcwNX0.sElq1pSIIoIy4TQgUCHSWbi04ja3JcJjxujf5s5ivfI";
+var ORDER=["Creche","Nursery 1","Nursery 2","KG 1","KG 2","Primary 1","Primary 2","Primary 3","Primary 4","Primary 5","Primary 6","JHS 1","JHS 2","JHS 3"];
+var $=function(i){return document.getElementById(i)};
+var esc=function(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})};
+var S=null,P=null,CL=[],tab="att",ST={},STU=[],Q=[];
+try{S=JSON.parse(localStorage.getItem("sess")||"null");Q=JSON.parse(localStorage.getItem("q")||"[]")}catch(e){}
+var today=function(){return new Date().toLocaleDateString("en-CA")};
+
+function api(path,o){o=o||{};
+  var h={apikey:KEY,Authorization:"Bearer "+(S?S.access_token:KEY),"Content-Type":"application/json"};
+  for(var k in (o.h||{}))h[k]=o.h[k];
+  return fetch(SB+path,{method:o.m||"GET",headers:h,body:o.b?JSON.stringify(o.b):undefined}).then(function(r){
+    if(r.status===401&&S){signOut("Your session ended. Please sign in again.");throw new Error("Session ended")}
+    return r.text().then(function(t){var j=null;try{j=t?JSON.parse(t):null}catch(e){}
+      if(!r.ok)throw new Error((j&&(j.message||j.msg||j.error_description))||"Something went wrong ("+r.status+")");return j})})}
+
+function loginView(m,su){
+  $("app").innerHTML='<div class="login"><h1>Apostolic Primary and JHS</h1><p class="sub">'+(su?"Create your account":"Sign in with your email")+'</p>'+(su?'<input id="fn" placeholder="Full name" autocomplete="name">':'')+'<input id="em" type="email" placeholder="Email" autocomplete="username"><input id="pw" type="password" placeholder="Password (at least 6 characters)" autocomplete="'+(su?"new-password":"current-password")+'"><button class="btn" id="go">'+(su?"Create account":"Sign in")+'</button><p><a href="#" id="sw" style="color:var(--deep2)">'+(su?"I already have an account":"New here? Create an account")+'</a></p><div id="er">'+(m?'<div class="msg bad">'+esc(m)+'</div>':"")+'</div></div>';
+  $("sw").onclick=function(e){e.preventDefault();loginView("",!su)};
+  $("go").onclick=function(){var b=$("go"),name=su?$("fn").value.trim():"";
+    if(su&&!name)return loginView("Please type your full name.",su);
+    b.disabled=true;b.textContent="Please wait…";
+    var body={email:$("em").value.trim(),password:$("pw").value};if(su)body.data={full_name:name};
+    fetch(SB+(su?"/auth/v1/signup":"/auth/v1/token?grant_type=password"),{method:"POST",headers:{apikey:KEY,"Content-Type":"application/json"},body:JSON.stringify(body)})
+    .then(function(r){return r.json().then(function(j){if(!r.ok)throw new Error(j.error_description||j.msg||j.message||"Something went wrong");return j})})
+    .then(function(j){if(!j.access_token)return loginView("Account created. Check your email to confirm it, then sign in.");
+      S={access_token:j.access_token,uid:j.user.id};localStorage.setItem("sess",JSON.stringify(S));start()})
+    .catch(function(e){loginView(e instanceof TypeError?"No internet. Please try again.":e.message,su)})}}
+function signOut(m){try{localStorage.removeItem("sess");if(m)sessionStorage.setItem("msg",m)}catch(e){}S=null;P=null;location.reload()}
+
+function start(){
+  if(!S){var m0=null;try{m0=sessionStorage.getItem("msg");sessionStorage.removeItem("msg")}catch(e){}return loginView(m0)}
+  api("/rest/v1/profiles?id=eq."+S.uid+"&select=*").then(function(a){
+    if(!a||!a[0])return signOut("This login has no school profile yet. Ask the admin to add you.");
+    P=a[0];return Promise.all([api("/rest/v1/classes?select=id,name,stage"),api("/rest/v1/terms?select=*&order=starts_on"),api("/rest/v1/subjects?select=id,name,stage")]).then(function(r){var c=r[0];TERMS=r[1];SUBJ=r[2];pickTerm();
+      CL=c.sort(function(x,y){return ORDER.indexOf(x.name)-ORDER.indexOf(y.name)});shell();flush()})
+  }).catch(function(e){if(S)loginView(e instanceof TypeError?"No internet. Please try again.":e.message)})}
+
+function shell(){
+  var tabs=P.role==="parent"?[]:[["att","Attendance"],["gr","Grades"],["rp","Reports"]];if(P.role==="admin"||P.role==="head")tabs.push(["ov","Overview"]);if(P.role==="admin"){tabs.push(["pu","Pupils"]);tabs.push(["st","Staff"])}
+  $("app").innerHTML='<header><div class="sp"><b>Apostolic Primary and JHS</b><small>'+esc(P.full_name)+' · '+esc(P.role)+'</small></div><button type="button" class="out" id="so">Sign out</button></header><main id="v"></main><nav>'+
+    tabs.map(function(t){return '<button data-t="'+t[0]+'">'+t[1]+'</button>'}).join("")+'</nav>';
+  $("so").addEventListener("click",function(){signOut()});
+  document.querySelectorAll("nav button").forEach(function(b){b.onclick=function(){go(b.dataset.t)}});
+  if(P.role==="parent"){document.querySelector("nav").style.display="none";$("v").innerHTML='<div class="card"><h2>Welcome, '+esc(P.full_name)+'</h2><p>Your account is ready. The school admin will give you access soon. Sign in again later to check.</p></div>';return}
+  go(tab)}
+function go(t){tab=t;document.querySelectorAll("nav button").forEach(function(b){b.classList.toggle("on",b.dataset.t===t)});({att:att,gr:tabGr,rp:tabRp,ov:ov,pu:pu,st:staff})[t]()}
+function clsSel(id){return '<select id="'+id+'">'+CL.map(function(c){return '<option value="'+c.id+'">'+esc(c.name)+'</option>'}).join("")+'</select>'}
+function note(el,m,bad){$(el).innerHTML='<div class="msg'+(bad?" bad":"")+'">'+esc(m)+'</div>'}
+function fail(e){return e instanceof TypeError?"No internet right now.":e.message}
+
+// ---------- Attendance ----------
+function att(){
+  $("v").innerHTML='<h2>Take attendance</h2><div class="card">'+clsSel("ac")+'<div id="al" class="sub">Loading…</div></div><button class="btn" id="as" style="display:none">Save attendance</button><div id="am"></div>';
+  $("ac").onchange=loadAtt;$("as").onclick=saveAtt;loadAtt()}
+function loadAtt(){var c=$("ac").value;$("al").textContent="Loading…";$("as").style.display="none";$("am").innerHTML="";
+  Promise.all([api("/rest/v1/students?class_id=eq."+c+"&active=eq.true&select=id,full_name,admission_no&order=full_name"),
+    api("/rest/v1/attendance?class_id=eq."+c+"&day=eq."+today()+"&select=student_id,status")]).then(function(r){
+    STU=r[0];ST={};STU.forEach(function(s){ST[s.id]="present"});r[1].forEach(function(a){ST[a.student_id]=a.status});drawAtt()
+  }).catch(function(e){$("al").textContent=fail(e)})}
+function drawAtt(){
+  if(!STU.length){$("al").innerHTML="No pupils in this class yet."+(P.role==="admin"?" Add them in the Pupils tab.":"");return}
+  var L=[["present","P"],["late","L"],["absent","A"],["excused","E"]];
+  $("al").innerHTML=STU.map(function(s){return '<div class="row"><div class="nm"><b>'+esc(s.full_name)+'</b><small>'+esc(s.admission_no)+'</small></div><div class="seg">'+
+    L.map(function(l){return '<button data-i="'+s.id+'" data-s="'+l[0]+'" class="'+(ST[s.id]===l[0]?"on":"")+'" aria-label="'+l[0]+'">'+l[1]+'</button>'}).join("")+'</div></div>'}).join("")+
+    '<div class="sub" style="margin-top:8px">P present · L late · A absent · E excused</div>';
+  document.querySelectorAll("#al .seg button").forEach(function(b){b.onclick=function(){ST[b.dataset.i]=b.dataset.s;drawAtt()}});
+  $("as").style.display="block"}
+function saveAtt(){var c=$("ac").value,rows=STU.map(function(s){return{school_id:P.school_id,student_id:s.id,class_id:c,day:today(),status:ST[s.id],marked_by:P.id}});
+  $("as").disabled=true;
+  post(rows).then(function(){note("am","Attendance saved.")}).catch(function(e){
+    if(e instanceof TypeError){Q.push(rows);localStorage.setItem("q",JSON.stringify(Q));note("am","Saved on this phone. It will sync when the internet is back.")}else note("am",e.message,true)
+  }).then(function(){$("as").disabled=false})}
+function post(rows){return api("/rest/v1/attendance?on_conflict=student_id,day",{m:"POST",b:rows,h:{Prefer:"resolution=merge-duplicates,return=minimal"}})}
+function flush(){if(!Q.length)return;var q=Q;Q=[];post([].concat.apply([],q)).then(function(){localStorage.removeItem("q")}).catch(function(){Q=q})}
+window.addEventListener("online",function(){if(S)flush()});
+
+// ---------- Overview ----------
+function ov(){$("v").innerHTML='<h2>School overview</h2><div id="ob" class="sub">Loading…</div>';
+  Promise.all([api("/rest/v1/class_attendance_today?select=*"),api("/rest/v1/students?active=eq.true&select=class_id")]).then(function(r){
+    var m={},n={},tp=0,tm=0;r[0].forEach(function(x){m[x.class_id]=x;tp+=x.present;tm+=x.marked});r[1].forEach(function(s){n[s.class_id]=(n[s.class_id]||0)+1});
+    var rate=tm?Math.round(tp/tm*100)+"%":"–";
+    $("ob").outerHTML='<div class="kp"><div><b>'+r[1].length+'</b><span>Pupils enrolled</span></div><div><b>'+rate+'</b><span>Attendance today</span></div></div><div class="card"><table><thead><tr><th>Class</th><th class="r">Pupils</th><th class="r">Present today</th></tr></thead><tbody>'+
+      CL.map(function(c){var x=m[c.id];return '<tr><td>'+esc(c.name)+'</td><td class="r">'+(n[c.id]||0)+'</td><td class="r">'+(x&&x.marked?x.present+"/"+x.marked:'<span class="tag">Not marked</span>')+'</td></tr>'}).join("")+'</tbody></table></div>'
+  }).catch(function(e){$("ob").textContent=fail(e)})}
+
+// ---------- Pupils (admin) ----------
+function pu(){$("v").innerHTML='<h2>Pupils</h2><div class="card"><label class="sub" for="pc">Class</label>'+clsSel("pc")+'<label class="sub" for="pn">Names, one per line. Add an admission number after a comma if you have one.</label><textarea id="pn" placeholder="Kwame Mensah&#10;Ama Boateng, AP015"></textarea><button class="btn" id="pa">Add pupils</button><div id="pm"></div></div><div class="card" id="pl"></div>';
+  $("pc").onchange=pList;$("pa").onclick=pAdd;pList()}
+function pList(){$("pl").textContent="Loading…";api("/rest/v1/students?class_id=eq."+$("pc").value+"&select=full_name,admission_no&order=full_name").then(function(a){
+  $("pl").innerHTML='<b>'+a.length+' pupils in this class</b>'+a.map(function(s){return '<div class="row"><div class="nm">'+esc(s.full_name)+'<small>'+esc(s.admission_no)+'</small></div></div>'}).join("")}).catch(function(e){$("pl").textContent=fail(e)})}
+function pAdd(){var lines=$("pn").value.split("\n").map(function(l){return l.trim()}).filter(Boolean);if(!lines.length)return note("pm","Type at least one name.",true);
+  $("pa").disabled=true;
+  api("/rest/v1/students?select=id").then(function(all){var n=all.length;
+    var rows=lines.map(function(l,i){var p=l.split(",");return{school_id:P.school_id,class_id:$("pc").value,full_name:p[0].trim(),admission_no:(p[1]||"").trim()||"AP"+String(n+i+1).padStart(3,"0")}});
+    return api("/rest/v1/students",{m:"POST",b:rows,h:{Prefer:"return=minimal"}}).then(function(){$("pn").value="";note("pm",rows.length+" pupils added.");pList()})
+  }).catch(function(e){note("pm",fail(e),true)}).then(function(){$("pa").disabled=false})}
+
+// ---------- Staff (admin) ----------
+function staff(){$("v").innerHTML='<h2>Staff</h2><p class="sub">New people appear here after they create an account. Choose their role, and tick the classes each teacher takes.</p><div id="sl" class="sub">Loading…</div>';
+  Promise.all([api("/rest/v1/profiles?role=neq.admin&select=id,full_name,role&order=full_name"),api("/rest/v1/teacher_classes?select=teacher_id,class_id")]).then(function(r){
+    var tc={};r[1].forEach(function(x){tc[x.teacher_id+x.class_id]=1});
+    $("sl").innerHTML=r[0].length?r[0].map(function(p){return '<div class="card"><b>'+esc(p.full_name)+'</b><select data-p="'+p.id+'" class="rs"><option value="parent"'+(p.role==="parent"?" selected":"")+'>Not assigned yet</option><option value="teacher"'+(p.role==="teacher"?" selected":"")+'>Teacher</option><option value="head"'+(p.role==="head"?" selected":"")+'>Head teacher</option></select>'+
+      (p.role==="teacher"?'<div class="sub">Classes:</div>'+CL.map(function(c){return '<label style="display:inline-block;margin:4px 12px 4px 0"><input type="checkbox" style="width:auto;margin:0 6px 0 0" data-t="'+p.id+'" data-c="'+c.id+'"'+(tc[p.id+c.id]?" checked":"")+'>'+esc(c.name)+'</label>'}).join(""):"")+'</div>'}).join(""):"Nobody has created an account yet.";
+    document.querySelectorAll(".rs").forEach(function(s){s.onchange=function(){api("/rest/v1/profiles?id=eq."+s.dataset.p,{m:"PATCH",b:{role:s.value},h:{Prefer:"return=minimal"}}).then(staff).catch(function(e){alert(fail(e))})}});
+    document.querySelectorAll("[data-c]").forEach(function(k){k.onchange=function(){
+      (k.checked?api("/rest/v1/teacher_classes",{m:"POST",b:{teacher_id:k.dataset.t,class_id:k.dataset.c},h:{Prefer:"resolution=ignore-duplicates,return=minimal"}}):api("/rest/v1/teacher_classes?teacher_id=eq."+k.dataset.t+"&class_id=eq."+k.dataset.c,{m:"DELETE"})).catch(function(e){alert(fail(e));k.checked=!k.checked})}})
+  }).catch(function(e){$("sl").textContent=fail(e)})}
+
+// ---------- Grades and report cards ----------
+var TERMS=[],TERM=null,SUBJ=[],SC={},RS=[];
+function pickTerm(){var t=today();TERM=TERMS.filter(function(x){return x.starts_on<=t&&t<=x.ends_on})[0]||TERMS[TERMS.length-1]||null}
+function cls(id){return CL.filter(function(c){return c.id===id})[0]}
+function gradeOf(t,g){if(g==="jhs")return t>=80?"1":t>=70?"2":t>=65?"3":t>=60?"4":t>=55?"5":t>=50?"6":t>=45?"7":t>=40?"8":"9";return t>=80?"HP":t>=68?"P":t>=54?"AP":t>=40?"D":"B"}
+function noTerm(){$("v").innerHTML='<h2>Grades</h2><div class="card">No school term is set up yet. Ask the admin to add the terms.</div>'}
+function tabGr(){if(!TERM)return noTerm();
+  $("v").innerHTML='<h2>Enter scores</h2><div class="card">'+clsSel("gc")+'<select id="gs"></select><div id="gl" class="sub">Loading…</div></div><button class="btn" id="gv" style="display:none">Save scores</button><div id="gm"></div>';
+  $("gc").onchange=gSubs;$("gs").onchange=gLoad;$("gv").onclick=gSave;gSubs()}
+function gSubs(){var c=cls($("gc").value);$("gm").innerHTML="";
+  if(c.stage!=="primary"&&c.stage!=="jhs"){$("gs").innerHTML="";$("gv").style.display="none";$("gl").textContent="Pre-school classes will use progress ratings instead of scores. That screen is coming next.";return}
+  $("gs").innerHTML=SUBJ.filter(function(x){return x.stage===c.stage}).map(function(x){return '<option value="'+x.id+'">'+esc(x.name)+'</option>'}).join("");gLoad()}
+function gLoad(){var c=$("gc").value,sub=$("gs").value;$("gl").textContent="Loading…";$("gv").style.display="none";$("gm").innerHTML="";
+  api("/rest/v1/students?class_id=eq."+c+"&active=eq.true&select=id,full_name&order=full_name").then(function(st){STU=st;
+    if(!st.length){$("gl").textContent="No pupils in this class yet.";return}
+    return api("/rest/v1/scores?subject_id=eq."+sub+"&term_id=eq."+TERM.id+"&select=student_id,class_score,exam_score").then(function(r){SC={};r.forEach(function(x){SC[x.student_id]=x});drawG()})
+  }).catch(function(e){$("gl").textContent=fail(e)})}
+function drawG(){var g=cls($("gc").value).stage;
+  $("gl").innerHTML='<table><thead><tr><th>Pupil</th><th class="r">Class /50</th><th class="r">Exam /50</th><th class="r">Total</th><th class="r">Grade</th></tr></thead><tbody>'+STU.map(function(s,i){var d=SC[s.id]||{},e=d.class_score==null&&d.exam_score==null,t=e?"":(+d.class_score||0)+(+d.exam_score||0);
+    return '<tr><td>'+esc(s.full_name)+'</td><td class="r"><input class="num" type="number" inputmode="decimal" min="0" max="50" data-i="'+i+'" data-k="class_score" value="'+(d.class_score==null?"":d.class_score)+'" aria-label="Class score"></td><td class="r"><input class="num" type="number" inputmode="decimal" min="0" max="50" data-i="'+i+'" data-k="exam_score" value="'+(d.exam_score==null?"":d.exam_score)+'" aria-label="Exam score"></td><td class="r" id="gt'+i+'">'+t+'</td><td class="r" id="gg'+i+'"><b>'+(e?"":gradeOf(t,g))+'</b></td></tr>'}).join("")+'</tbody></table><div class="sub" style="margin-top:8px">'+(g==="jhs"?"Grades 1 (best) to 9, by total out of 100.":"HP 80+ · P 68–79 · AP 54–67 · D 40–53 · B below 40")+'</div>';
+  document.querySelectorAll("#gl input").forEach(function(x){x.oninput=function(){var i=x.dataset.i,s=STU[i],d=SC[s.id]=SC[s.id]||{};d[x.dataset.k]=x.value===""?null:Math.max(0,Math.min(50,+x.value));var t=(+d.class_score||0)+(+d.exam_score||0);$("gt"+i).textContent=t;$("gg"+i).innerHTML="<b>"+gradeOf(t,g)+"</b>"}});
+  $("gv").style.display="block"}
+function gSave(){var sub=$("gs").value,rows=STU.filter(function(s){var d=SC[s.id];return d&&(d.class_score!=null||d.exam_score!=null)}).map(function(s){var d=SC[s.id];return{school_id:P.school_id,student_id:s.id,subject_id:sub,term_id:TERM.id,class_score:d.class_score,exam_score:d.exam_score}});
+  if(!rows.length)return note("gm","Enter at least one score first.",true);$("gv").disabled=true;
+  api("/rest/v1/scores?on_conflict=student_id,subject_id,term_id",{m:"POST",b:rows,h:{Prefer:"resolution=merge-duplicates,return=minimal"}}).then(function(){note("gm","Scores saved.")}).catch(function(e){note("gm",fail(e),true)}).then(function(){$("gv").disabled=false})}
+
+function tabRp(){if(!TERM)return noTerm();
+  $("v").innerHTML='<h2>Report cards</h2><div class="card noprint">'+clsSel("rc")+'<select id="rs"></select></div><div id="rd"></div>';
+  $("rc").onchange=rpPupils;$("rs").onchange=rpShow;rpPupils()}
+function rpPupils(){$("rd").innerHTML="";api("/rest/v1/students?class_id=eq."+$("rc").value+"&active=eq.true&select=id,full_name,admission_no&order=full_name").then(function(st){RS=st;
+  $("rs").innerHTML=st.map(function(x){return '<option value="'+x.id+'">'+esc(x.full_name)+'</option>'}).join("");
+  if(st.length)rpShow();else $("rd").innerHTML='<div class="card">No pupils in this class yet.</div>'}).catch(function(e){$("rd").textContent=fail(e)})}
+function rpShow(){var c=cls($("rc").value),id=$("rs").value,p=RS.filter(function(x){return x.id===id})[0];
+  if(c.stage!=="primary"&&c.stage!=="jhs"){$("rd").innerHTML='<div class="card">Pre-school report cards are coming next.</div>';return}
+  api("/rest/v1/scores?term_id=eq."+TERM.id+"&select=student_id,class_score,exam_score,total,subjects(name)").then(function(all){
+    var ids=RS.map(function(x){return x.id});all=all.filter(function(x){return ids.indexOf(x.student_id)>=0});
+    var mine=all.filter(function(x){return x.student_id===id}).sort(function(a,b){return a.subjects.name<b.subjects.name?-1:1}),tot={};
+    all.forEach(function(x){tot[x.student_id]=(tot[x.student_id]||0)+(+x.total||0)});
+    var n=mine.length,T=mine.reduce(function(a,x){return a+(+x.total||0)},0),avg=n?Math.round(T/n):0,pos=1+Object.keys(tot).filter(function(k){return tot[k]>T}).length;
+    var rem=avg>=80?"Outstanding work. Keep it up.":avg>=68?"Good progress. Aim higher next term.":avg>=54?"Steady effort. Extra practice in weaker subjects will help.":"Needs more support. Please meet the class teacher.";
+    $("rd").innerHTML='<div class="card" style="border:2px solid var(--sea)"><div style="text-align:center;border-bottom:2px solid var(--sea);padding-bottom:10px;margin-bottom:12px"><b style="font-size:17px">Apostolic Primary and Junior High School</b><div class="sub">Term '+TERM.term_no+' report · '+esc(TERM.academic_year)+' · '+esc(c.name)+'</div></div>'+
+      '<div style="margin-bottom:12px"><b>'+esc(p.full_name)+'</b><div class="sub">Admission no. '+esc(p.admission_no)+'</div></div>'+
+      (n?'<table><thead><tr><th>Subject</th><th class="r">Class</th><th class="r">Exam</th><th class="r">Total</th><th class="r">Grade</th></tr></thead><tbody>'+mine.map(function(x){return '<tr><td>'+esc(x.subjects.name)+'</td><td class="r">'+x.class_score+'</td><td class="r">'+x.exam_score+'</td><td class="r">'+x.total+'</td><td class="r"><b>'+gradeOf(+x.total,c.stage)+'</b></td></tr>'}).join("")+'</tbody></table>'+
+      '<div class="kp" style="margin-top:12px"><div><b>'+avg+'%</b><span>Average</span></div><div><b>'+pos+' of '+ids.length+'</b><span>Position</span></div></div><div class="msg">'+rem+'</div>':'<div class="sub">No scores entered for this term yet.</div>')+'</div>'+
+      (n?'<button class="btn noprint" onclick="window.print()">Print or save as PDF</button>':"")
+  }).catch(function(e){$("rd").textContent=fail(e)})}
+
+start();
+</script>
+</body>
+</html>
